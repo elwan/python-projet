@@ -1,0 +1,48 @@
+from flask import Flask , request,jsonify
+from flask_restplus import Api,Resource
+import pymongo as modb
+
+myclient = modb.MongoClient("mongodb://10.1.5.20:27017")
+
+apisdb = myclient["api"]
+
+mydoc =apisdb["flights"]
+
+paxquery = {"created_at" : {"$gte":"2020-03-01T00:00:00", "$lte":"2020-03-29T00:00:00"}}
+
+app = Flask(__name__)
+
+api = Api(app=app, version='0.1' , title='Fligthstats Api' , description = '' , validate =True)
+
+@api.route("/fligths/")
+class FlightList(Resource):
+    
+    def get_fligthdata(flight):
+        dataflight=flight
+        numberchild = numberofchild(dataflight['passengers'])
+        dictdata = dict(NumberPax=dataflight['passenger_count'],NumberFlight=dataflight['flightNumber'],DateFlight=dataflight['flight_date'],FromAirport=dataflight['FromAirport']['iata'],ToAirport=dataflight['ToAirport']['iata'],NumberChild=numberchild)
+        
+        return dictdata
+
+    def numberofchild(paxdata):
+    #iterateurs = len(data['passengers'])                                                                                                                                                                          
+        number_child =0
+        passengers = paxdata
+        iterateurs = len(passengers)
+        for i in range(iterateurs):
+            if int(passengers[i]['age']) <= 2:
+            number_child +=1
+        return number_child
+    
+    def get(self):
+        
+        """Return list of flights"""
+        paxquery = {"created_at" : {"$gte":"2020-03-01T00:00:00", "$lte":"2020-03-29T00:00:00"}}
+        cursor = mydoc.find(paxquery)
+        data = []
+        for fligth in cursor:
+            data.append(jsonify(get_fligthdata(fligth)))
+        return {"response": data}
+
+if __name__ == '__main__' :
+    app.run(debug=True)
